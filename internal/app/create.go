@@ -188,7 +188,7 @@ func scanGoms(path string, name string) (string, error) {
 	return dir, nil
 }
 
-func findValueSpec(path string, structName string) (string, error) {
+func findValueSpec(path string, identName string) (string, error) {
 	var filename string
 	fset := token.NewFileSet()
 	f, err := decorator.ParseFile(fset, path, nil, 0)
@@ -203,7 +203,7 @@ func findValueSpec(path string, structName string) (string, error) {
 			return true
 		}
 
-		if valueSpec.Names[0].Name == structName {
+		if valueSpec.Names[0].Name == identName {
 			filename = path
 		}
 
@@ -259,7 +259,6 @@ func addSeedItem(filepath, searchNode, key, name, upFuncName, downFuncName strin
 
 func addSeedChildNode(key, name, seedFuncName, rollbackFuncName string) *dst.CompositeLit {
 	newChild := new(dst.CompositeLit)
-	newChild.Elts = make([]dst.Expr, 4)
 
 	newChild.Elts = []dst.Expr{
 		createBasicLitKeyValue("Key", key),
@@ -280,7 +279,6 @@ func addSeedChildNode(key, name, seedFuncName, rollbackFuncName string) *dst.Com
 
 func addMigrationChildNode(key, seedFuncName, rollbackFuncName string) *dst.CompositeLit {
 	newChild := new(dst.CompositeLit)
-	newChild.Elts = make([]dst.Expr, 4)
 
 	newChild.Elts = []dst.Expr{
 		createBasicLitKeyValue("ID", key),

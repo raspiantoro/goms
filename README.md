@@ -13,7 +13,7 @@ go install github.com/raspiantoro/goms@latest
 
 Before adding your seed files, you need to initialize Gomser within your application.
 ```bash
-goms init -c
+goms init
 ```
 
 Then, you can add a new seed with the following command:
