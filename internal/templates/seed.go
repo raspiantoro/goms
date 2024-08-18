@@ -5,19 +5,9 @@ func SeedTemplate() []byte {
 
 package {{ .SeederSubDir }}
 
-import (
-	"path/filepath"
-	"runtime"
-)
+import "github.com/raspiantoro/gormseeder"
 
-type {{ .SeedsStructName }} struct{}
-
-func (*{{ .SeedsStructName }}) Path() string {
-	_, b, _, _ := runtime.Caller(0)
-	basepath := filepath.Dir(b)
-
-	return basepath
-}
+var Seeds = []*gormseeder.Seed{}
 `)
 }
 
@@ -31,13 +21,13 @@ import (
 )
 
 // don't rename this function
-func (s *{{ .SeedsStructName }}) {{ .UpFuncName }}(db *gorm.DB) error {
+func {{ .UpFuncName }}(db *gorm.DB) error {
 	// place your seed code here
 	return nil
 }
 
 // don't rename this function
-func (s *{{ .SeedsStructName }}) {{ .DownFuncName }}(db *gorm.DB) error {
+func {{ .DownFuncName }}(db *gorm.DB) error {
 	// place your rollback code here
 	return nil
 }	

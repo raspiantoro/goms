@@ -102,7 +102,15 @@ func initSeeder(cfg Config) error {
 		log.Fatalln(err)
 	}
 
-	if err := os.WriteFile(cfg.Module.Dir+"/"+filepath.Clean(filepath.Join(seederDir, ".."))+"/seeder.go", b.Bytes(), os.ModePerm); err != nil {
+	cliSeederDir := cfg.Module.Dir + "/" + filepath.Clean(filepath.Join(seederDir, "../..")) + "/cli/seeder"
+	if _, err := os.Stat(cliSeederDir); err != nil {
+		err = os.MkdirAll(cliSeederDir, os.ModePerm)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	if err := os.WriteFile(cliSeederDir+"/seeder.go", b.Bytes(), os.ModePerm); err != nil {
 		log.Fatalln(err)
 	}
 	return nil
@@ -138,7 +146,7 @@ func initMigration(cfg Config) error {
 		log.Fatalln(err)
 	}
 
-	t, err = template.New("seeder-cli").Parse(string(templates.CliMigrationTemplate()))
+	t, err = template.New("migration-cli").Parse(string(templates.CliMigrationTemplate()))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -159,7 +167,15 @@ func initMigration(cfg Config) error {
 		log.Fatalln(err)
 	}
 
-	if err := os.WriteFile(cfg.Module.Dir+"/"+filepath.Clean(filepath.Join(migrationDir, ".."))+"/migrator.go", b.Bytes(), os.ModePerm); err != nil {
+	cliMigrationDir := cfg.Module.Dir + "/" + filepath.Clean(filepath.Join(migrationDir, "../..")) + "/cli/migrator"
+	if _, err := os.Stat(cliMigrationDir); err != nil {
+		err = os.MkdirAll(cliMigrationDir, os.ModePerm)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	if err := os.WriteFile(cliMigrationDir+"/migrator.go", b.Bytes(), os.ModePerm); err != nil {
 		log.Fatalln(err)
 	}
 	return nil

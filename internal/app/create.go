@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"go/ast"
-	"go/parser"
 	"go/token"
 	"io/fs"
 	"log"
@@ -15,6 +13,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/dave/dst"
+	"github.com/dave/dst/decorator"
 	"github.com/raspiantoro/goms/internal/templates"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -24,7 +24,8 @@ func CreateSeed(config Config) {
 	name := strings.ReplaceAll(config.Name, " ", "_")
 	name = strings.ReplaceAll(name, "-", "_")
 
-	config.Filename = "seed_" + time.Now().Format("20060102150405") + "_" + name + ".go"
+	key := time.Now().Format("20060102150405")
+	config.Filename = "seed_" + key + "_" + name + ".go"
 
 	var baseFuncName string
 
@@ -68,13 +69,25 @@ func CreateSeed(config Config) {
 	if err := os.WriteFile(mod.Dir+"/"+baseDir+"/"+config.Filename, b.Bytes(), os.ModePerm); err != nil {
 		log.Fatalln(err)
 	}
+
+	err = addSeedItem(
+		mod.Dir+"/"+baseDir+"/seeds.go",
+		seederNode,
+		key,
+		config.Name,
+		templateProps["UpFuncName"],
+		templateProps["DownFuncName"])
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func CreateMigration(config Config) {
 	name := strings.ReplaceAll(config.Name, " ", "_")
 	name = strings.ReplaceAll(name, "-", "_")
 
-	config.Filename = "migration_" + time.Now().Format("20060102150405") + "_" + name + ".go"
+	key := time.Now().Format("20060102150405")
+	config.Filename = "migration_" + key + "_" + name + ".go"
 
 	var baseFuncName string
 
@@ -118,13 +131,24 @@ func CreateMigration(config Config) {
 	if err := os.WriteFile(mod.Dir+"/"+baseDir+"/"+config.Filename, b.Bytes(), os.ModePerm); err != nil {
 		log.Fatalln(err)
 	}
+
+	err = addSeedItem(
+		mod.Dir+"/"+baseDir+"/migrations.go",
+		migrationNode,
+		key,
+		config.Name,
+		templateProps["UpFuncName"],
+		templateProps["DownFuncName"])
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func scanGoms(path string, name string) (string, error) {
 	var dir string
 	var filenames []string
 
-	structName := cases.Title(language.English, cases.Compact).String(name)
+	sliceName := cases.Title(language.English, cases.Compact).String(name)
 
 	err := filepath.Walk(path, func(path string, info fs.FileInfo, err error) error {
 		if info.IsDir() {
@@ -136,7 +160,7 @@ func scanGoms(path string, name string) (string, error) {
 		}
 
 		var filename string
-		filename, errs := findStruct(path, structName)
+		filename, errs := findValueSpec(path, sliceName)
 		if errs != nil {
 			return errs
 		}
@@ -156,7 +180,7 @@ func scanGoms(path string, name string) (string, error) {
 	}
 
 	if len(filenames) > 1 {
-		return dir, fmt.Errorf("multiple %s.go files with a %s struct found. provide the -d flag to specify your goms folder", name, structName)
+		return dir, fmt.Errorf("multiple %s.go files with a %s struct found. provide the -d flag to specify your goms folder", name, sliceName)
 	}
 
 	dir = filenames[0]
@@ -164,27 +188,22 @@ func scanGoms(path string, name string) (string, error) {
 	return dir, nil
 }
 
-func findStruct(path string, structName string) (string, error) {
+func findValueSpec(path string, structName string) (string, error) {
 	var filename string
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, nil, 0)
+	f, err := decorator.ParseFile(fset, path, nil, 0)
 	if err != nil {
 		return "", err
 	}
 
-	ast.Inspect(f, func(n ast.Node) bool {
+	dst.Inspect(f, func(n dst.Node) bool {
 
-		typeSpec, ok := n.(*ast.TypeSpec)
+		valueSpec, ok := n.(*dst.ValueSpec)
 		if !ok {
 			return true
 		}
 
-		_, ok = typeSpec.Type.(*ast.StructType)
-		if !ok {
-			return true
-		}
-
-		if typeSpec.Name.Name == structName {
+		if valueSpec.Names[0].Name == structName {
 			filename = path
 		}
 
@@ -192,4 +211,142 @@ func findStruct(path string, structName string) (string, error) {
 	})
 
 	return filename, nil
+}
+
+func addSeedItem(filepath, searchNode, key, name, upFuncName, downFuncName string) error {
+	fset := token.NewFileSet()
+	file, err := decorator.ParseFile(fset, filepath, nil, 0)
+	if err != nil {
+		return err
+	}
+
+	dst.Inspect(file, func(n dst.Node) bool {
+		switch x := n.(type) {
+		case *dst.ValueSpec:
+			if x.Names[0].Name != searchNode {
+				return true
+			}
+
+			cl, ok := x.Values[0].(*dst.CompositeLit)
+			if !ok {
+				return true
+			}
+
+			var newChild *dst.CompositeLit
+
+			if searchNode == seederNode {
+				newChild = addSeedChildNode(key, name, upFuncName, downFuncName)
+			} else {
+				newChild = addMigrationChildNode(key, upFuncName, downFuncName)
+			}
+
+			cl.Elts = append(cl.Elts, newChild)
+
+		}
+
+		return true
+	})
+
+	stringBuf := strings.Builder{}
+
+	decorator.Fprint(&stringBuf, file)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath, []byte(stringBuf.String()), os.ModePerm)
+}
+
+func addSeedChildNode(key, name, seedFuncName, rollbackFuncName string) *dst.CompositeLit {
+	newChild := new(dst.CompositeLit)
+	newChild.Elts = make([]dst.Expr, 4)
+
+	newChild.Elts = []dst.Expr{
+		createBasicLitKeyValue("Key", key),
+		createBasicLitKeyValue("Name", name),
+		createCallExprKeyValue("Seed", seedFuncName, "gormseeder", "SeederFunc"),
+		createCallExprKeyValue("Rollback", rollbackFuncName, "gormseeder", "SeederFunc"),
+	}
+
+	newChild.Decs = dst.CompositeLitDecorations{
+		NodeDecs: dst.NodeDecs{
+			Before: dst.NewLine,
+			After:  dst.NewLine,
+		},
+	}
+
+	return newChild
+}
+
+func addMigrationChildNode(key, seedFuncName, rollbackFuncName string) *dst.CompositeLit {
+	newChild := new(dst.CompositeLit)
+	newChild.Elts = make([]dst.Expr, 4)
+
+	newChild.Elts = []dst.Expr{
+		createBasicLitKeyValue("ID", key),
+		createCallExprKeyValue("Migrate", seedFuncName, "gormigrate", "MigrateFunc"),
+		createCallExprKeyValue("Rollback", rollbackFuncName, "gormigrate", "RollbackFunc"),
+	}
+
+	newChild.Decs = dst.CompositeLitDecorations{
+		NodeDecs: dst.NodeDecs{
+			Before: dst.NewLine,
+			After:  dst.NewLine,
+		},
+	}
+
+	return newChild
+}
+
+func createBasicLitKeyValue(key, value string) *dst.KeyValueExpr {
+	return &dst.KeyValueExpr{
+		Key: &dst.Ident{
+			Name: key,
+			Decs: dst.IdentDecorations{
+				NodeDecs: dst.NodeDecs{
+					Before: dst.NewLine,
+					After:  dst.NewLine,
+				},
+			},
+		},
+		Value: &dst.BasicLit{
+			Kind:  token.STRING,
+			Value: fmt.Sprintf("\"%s\"", value),
+			Decs: dst.BasicLitDecorations{
+				NodeDecs: dst.NodeDecs{
+					Before: dst.NewLine,
+					After:  dst.NewLine,
+				},
+			},
+		},
+	}
+}
+
+func createCallExprKeyValue(key, value, pkg, funcName string) *dst.KeyValueExpr {
+	return &dst.KeyValueExpr{
+		Key: &dst.Ident{
+			Name: key,
+		},
+		Value: &dst.CallExpr{
+			Fun: &dst.SelectorExpr{
+				X: &dst.Ident{
+					Name: pkg,
+				},
+				Sel: &dst.Ident{
+					Name: funcName,
+				},
+			},
+			Args: []dst.Expr{
+				&dst.Ident{
+					Name: value,
+				},
+			},
+		},
+		Decs: dst.KeyValueExprDecorations{
+			NodeDecs: dst.NodeDecs{
+				Before: dst.NewLine,
+				After:  dst.NewLine,
+			},
+		},
+	}
 }

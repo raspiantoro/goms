@@ -5,19 +5,9 @@ func MigrationsTemplate() []byte {
 
 package {{ .MigrationsSubDir }}
 
-import (
-	"path/filepath"
-	"runtime"
-)
+import "github.com/go-gormigrate/gormigrate/v2"
 
-type {{ .MigrationsStructName }} struct{}
-
-func (*{{ .MigrationsStructName }}) Path() string {
-	_, b, _, _ := runtime.Caller(0)
-	basepath := filepath.Dir(b)
-
-	return basepath
-}
+var Migrations = []*gormigrate.Migration{}
 `)
 }
 
@@ -31,13 +21,13 @@ import (
 )
 
 // don't rename this function
-func (s *{{ .MigrationsStructName }}) {{ .UpFuncName }}(db *gorm.DB) error {
+func {{ .UpFuncName }}(db *gorm.DB) error {
 	// place your seed code here
 	return nil
 }
 
 // don't rename this function
-func (s *{{ .MigrationsStructName }}) {{ .DownFuncName }}(db *gorm.DB) error {
+func {{ .DownFuncName }}(db *gorm.DB) error {
 	// place your rollback code here
 	return nil
 }	

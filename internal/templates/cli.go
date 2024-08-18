@@ -11,7 +11,6 @@ import (
 
 	"github.com/raspiantoro/gormseeder"
 	"{{ .SeedModuleName }}"
-	"github.com/raspiantoro/goms/gomsloader"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -32,9 +31,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	seeds := gomsloader.LoadSeeder(&{{ .SeederSubDir }}.Seeds{})
-
-	seeder := gormseeder.New(db, seeds)
+	seeder := gormseeder.New(db, {{ .SeederSubDir }}.Seeds)
 
 	if command != nil && *command == "rollback" {
 		if err = seeder.Rollback(); err != nil {
@@ -60,7 +57,6 @@ import (
 
 	"github.com/go-gormigrate/gormigrate/v2"
 	"{{ .MigrationModuleName }}"
-	"github.com/raspiantoro/goms/gomsloader"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -81,9 +77,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	migrations := gomsloader.LoadMigration(&{{ .MigrationSubDir }}.Migrations{})
-
-	migrator := gormigrate.New(db, gormigrate.DefaultOptions, migrations)
+	migrator := gormigrate.New(db, gormigrate.DefaultOptions, {{ .MigrationSubDir }}.Migrations)
 
 	if command != nil && *command == "rollback" {
 		if err = migrator.RollbackLast(); err != nil {
