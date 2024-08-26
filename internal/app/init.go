@@ -52,7 +52,7 @@ func Init(config Config) {
 }
 
 func initSeeder(cfg Config) error {
-	seederDir := fmt.Sprintf("%s/%s/%s", cfg.Path, seederBaseDir, seederSubDir)
+	seederDir := fmt.Sprintf("%s/%s", cfg.Path, seedersDir)
 
 	if _, err := os.Stat(seederDir); err != nil {
 		err = os.MkdirAll(seederDir, os.ModePerm)
@@ -67,8 +67,8 @@ func initSeeder(cfg Config) error {
 	}
 
 	templateProps := map[string]string{
-		"SeederSubDir":    seederSubDir,
-		"SeedsStructName": cases.Title(language.English, cases.Compact).String(seederSubDir),
+		"SeederSubDir":    seedersDir,
+		"SeedsStructName": cases.Title(language.English, cases.Compact).String(seedersDir),
 	}
 
 	var b bytes.Buffer
@@ -88,7 +88,7 @@ func initSeeder(cfg Config) error {
 
 	templateProps = map[string]string{
 		"SeedModuleName": cfg.Module.Path + "/" + seederDir,
-		"SeederSubDir":   seederSubDir,
+		"SeederSubDir":   seedersDir,
 		"Host":           "{{database-host}}",
 		"Username":       "{{database-username}}",
 		"Password":       "{{database-password}}",
@@ -102,7 +102,7 @@ func initSeeder(cfg Config) error {
 		log.Fatalln(err)
 	}
 
-	cliSeederDir := cfg.Module.Dir + "/" + filepath.Clean(filepath.Join(seederDir, "../..")) + "/cli/seeder"
+	cliSeederDir := cfg.Module.Dir + "/" + filepath.Clean(filepath.Join(seederDir, "..")) + "/cli/seeder"
 	if _, err := os.Stat(cliSeederDir); err != nil {
 		err = os.MkdirAll(cliSeederDir, os.ModePerm)
 		if err != nil {
@@ -117,7 +117,7 @@ func initSeeder(cfg Config) error {
 }
 
 func initMigration(cfg Config) error {
-	migrationDir := fmt.Sprintf("%s/%s/%s", cfg.Path, migrationBaseDir, migrationSubDir)
+	migrationDir := fmt.Sprintf("%s/%s", cfg.Path, migrationsDir)
 
 	if _, err := os.Stat(migrationDir); err != nil {
 		err = os.MkdirAll(migrationDir, os.ModePerm)
@@ -132,8 +132,8 @@ func initMigration(cfg Config) error {
 	}
 
 	templateProps := map[string]string{
-		"MigrationsSubDir":     migrationSubDir,
-		"MigrationsStructName": cases.Title(language.English, cases.Compact).String(migrationSubDir),
+		"MigrationsSubDir":     migrationsDir,
+		"MigrationsStructName": cases.Title(language.English, cases.Compact).String(migrationsDir),
 	}
 
 	var b bytes.Buffer
@@ -153,7 +153,7 @@ func initMigration(cfg Config) error {
 
 	templateProps = map[string]string{
 		"MigrationModuleName": cfg.Module.Path + "/" + migrationDir,
-		"MigrationSubDir":     migrationSubDir,
+		"MigrationSubDir":     migrationsDir,
 		"Host":                "{{database-host}}",
 		"Username":            "{{database-username}}",
 		"Password":            "{{database-password}}",
@@ -167,7 +167,7 @@ func initMigration(cfg Config) error {
 		log.Fatalln(err)
 	}
 
-	cliMigrationDir := cfg.Module.Dir + "/" + filepath.Clean(filepath.Join(migrationDir, "../..")) + "/cli/migrator"
+	cliMigrationDir := cfg.Module.Dir + "/" + filepath.Clean(filepath.Join(migrationDir, "..")) + "/cli/migrator"
 	if _, err := os.Stat(cliMigrationDir); err != nil {
 		err = os.MkdirAll(cliMigrationDir, os.ModePerm)
 		if err != nil {

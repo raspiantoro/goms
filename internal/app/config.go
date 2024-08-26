@@ -1,11 +1,9 @@
 package app
 
 const (
-	defaultPath      = "db"
-	migrationBaseDir = "migration"
-	migrationSubDir  = "migrations"
-	seederBaseDir    = "seeder"
-	seederSubDir     = "seeds"
+	defaultPath   = "db"
+	migrationsDir = "migrations"
+	seedersDir    = "seeds"
 
 	migrationNode = "Migrations"
 	seederNode    = "Seeds"

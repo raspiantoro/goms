@@ -39,7 +39,7 @@ func CreateSeed(config Config) {
 		searchPath = config.Path
 	}
 
-	path, err := scanGoms(searchPath, seederSubDir)
+	path, err := scanGoms(searchPath, seedersDir)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -56,8 +56,8 @@ func CreateSeed(config Config) {
 	templateProps := map[string]string{
 		"UpFuncName":      "Up" + baseFuncName,
 		"DownFuncName":    "Down" + baseFuncName,
-		"SeederSubDir":    seederSubDir,
-		"SeedsStructName": cases.Title(language.English, cases.Compact).String(seederSubDir),
+		"SeederSubDir":    seedersDir,
+		"SeedsStructName": cases.Title(language.English, cases.Compact).String(seedersDir),
 	}
 
 	var b bytes.Buffer
@@ -101,7 +101,7 @@ func CreateMigration(config Config) {
 		searchPath = config.Path
 	}
 
-	path, err := scanGoms(searchPath, migrationSubDir)
+	path, err := scanGoms(searchPath, migrationsDir)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -118,8 +118,8 @@ func CreateMigration(config Config) {
 	templateProps := map[string]string{
 		"UpFuncName":           "Up" + baseFuncName,
 		"DownFuncName":         "Down" + baseFuncName,
-		"MigrationsSubDir":     migrationSubDir,
-		"MigrationsStructName": cases.Title(language.English, cases.Compact).String(migrationSubDir),
+		"MigrationsSubDir":     migrationsDir,
+		"MigrationsStructName": cases.Title(language.English, cases.Compact).String(migrationsDir),
 	}
 
 	var b bytes.Buffer
@@ -249,7 +249,7 @@ func addSeedItem(filepath, searchNode, key, name, upFuncName, downFuncName strin
 
 	stringBuf := strings.Builder{}
 
-	decorator.Fprint(&stringBuf, file)
+	err = decorator.Fprint(&stringBuf, file)
 	if err != nil {
 		return err
 	}
